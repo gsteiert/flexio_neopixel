@@ -74,7 +74,7 @@
 #define NEO_BGWR ((2<<6) | (3<<4) | (1<<2) | (0)) ///< Transmit as B,G,W,R
 #define NEO_BGRW ((3<<6) | (2<<4) | (1<<2) | (0)) ///< Transmit as B,G,R,W
 
-
+#define NEO_BIT_FREQUENCY     800000
 
 
 /*! @brief Define FlexIO SPI access structure typedef. */

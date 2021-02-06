@@ -31,25 +31,28 @@ include(${ProjDirPath}/flags.cmake)
 include(${ProjDirPath}/config.cmake)
 
 add_executable(${MCUX_SDK_PROJECT_NAME} 
-"${ProjDirPath}/../flexio_neopixel_int.c"
+"${ProjDirPath}/../neo_demo.c"
+"${ProjDirPath}/../../../flexio_neopixel.c"
+"${ProjDirPath}/../../../flexio_neopixel.h"
 "${ProjDirPath}/../pin_mux.c"
 "${ProjDirPath}/../pin_mux.h"
-"${ProjDirPath}/../../../../board.c"
-"${ProjDirPath}/../../../../board.h"
-"${ProjDirPath}/../../../../clock_config.c"
-"${ProjDirPath}/../../../../clock_config.h"
+"${ProjDirPath}/../../../../mcux-sdk/boards/evkmimxrt1060/board.c"
+"${ProjDirPath}/../../../../mcux-sdk/boards/evkmimxrt1060/board.h"
+"${ProjDirPath}/../../../../mcux-sdk/boards/evkmimxrt1060/clock_config.c"
+"${ProjDirPath}/../../../../mcux-sdk/boards/evkmimxrt1060/clock_config.h"
 "${ProjDirPath}/../dcd.c"
 "${ProjDirPath}/../dcd.h"
 )
 
 target_include_directories(${MCUX_SDK_PROJECT_NAME} PRIVATE
     ${ProjDirPath}/..
-    ${ProjDirPath}/../../../..
+    ${ProjDirPath}/../../..
+    ${ProjDirPath}/../../../../mcux-sdk/boards/evkmimxrt1060
 )
 
 #path for entry cmake
 set(CMAKE_MODULE_PATH
-    ${ProjDirPath}/../../../../../..
+    ${ProjDirPath}/../../../../mcux-sdk
 )
 
 #Include Entry cmake component
@@ -63,8 +66,6 @@ include(utility_assert_lite_MIMXRT1062)
 include(driver_clock)
 
 include(driver_flexio)
-
-include(driver_flexio_neopixel)
 
 include(driver_lpspi)
 
