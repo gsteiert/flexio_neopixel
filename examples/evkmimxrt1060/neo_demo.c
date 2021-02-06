@@ -121,13 +121,13 @@ int main(void)
         color = i/NEOPIXEL_NUMBER;
         color = (1&color) + ((2&color)<<16) + ((4&color)<<8);
         pixelData[i % NEOPIXEL_NUMBER] = 0;
-        pixelData[(i+1) % NEOPIXEL_NUMBER] = color;
-        pixelData[(i+2) % NEOPIXEL_NUMBER] = color <<1;
-        pixelData[(i+3) % NEOPIXEL_NUMBER] = color <<2;
-        pixelData[(i+4) % NEOPIXEL_NUMBER] = color <<3;
-        pixelData[(i+5) % NEOPIXEL_NUMBER] = color <<4;
-        pixelData[(i+6) % NEOPIXEL_NUMBER] = color <<2;
-        pixelData[(i+7) % NEOPIXEL_NUMBER] = color ;
+        pixelData[(i+1) % NEOPIXEL_NUMBER] = color <<8;
+        pixelData[(i+2) % NEOPIXEL_NUMBER] = color <<9;
+        pixelData[(i+3) % NEOPIXEL_NUMBER] = color <<10;
+        pixelData[(i+4) % NEOPIXEL_NUMBER] = color <<11;
+        pixelData[(i+5) % NEOPIXEL_NUMBER] = color <<12;
+        pixelData[(i+6) % NEOPIXEL_NUMBER] = color <<10;
+        pixelData[(i+7) % NEOPIXEL_NUMBER] = color <<8;
         fiopix_show(&fiopix);
         i +=1;
     }
