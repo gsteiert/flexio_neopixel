@@ -16,6 +16,9 @@
 /*******************************************************************************
  * Definitions
  ******************************************************************************/
+#define EXAMPLE_LED_GPIO     BOARD_USER_LED_GPIO
+#define EXAMPLE_LED_GPIO_PIN BOARD_USER_LED_GPIO_PIN
+
 #define NEOPIXEL_TYPE          NEO_GRB
 #define NEOPIXEL_NUMBER        40
 #define NEOPIXEL_SHIFTER       2
@@ -62,15 +65,22 @@ void SysTick_DelayTicks(uint32_t n)
  */
 int main(void)
 {
+    /* Define the init structure for the output LED pin*/
+    gpio_pin_config_t led_config = {kGPIO_DigitalOutput, 0, kGPIO_NoIntmode};
     FLEXIO_NEOPIXEL_Type fiopix;
     uint32_t pixelData[NEOPIXEL_NUMBER];
     uint32_t i;
     uint32_t color;
 
     /* Init board hardware. */
+    BOARD_ConfigMPU();
     BOARD_InitPins();
     BOARD_BootClockRUN();
     BOARD_InitDebugConsole();
+
+    /* Init output LED GPIO. */
+    GPIO_PinInit(EXAMPLE_LED_GPIO, EXAMPLE_LED_GPIO_PIN, &led_config);
+    GPIO_PinWrite(EXAMPLE_LED_GPIO, EXAMPLE_LED_GPIO_PIN, 0U);
 
     /* Clock setting for Flexio */
     CLOCK_SetMux(kCLOCK_Flexio2Mux, NEOPIXEL_FLEXIO_CLOCK_SELECT);
@@ -86,11 +96,11 @@ int main(void)
     fiopix.timer      = NEOPIXEL_TIMER;
     fiopix_init(&fiopix, NEOPIXEL_FLEXIO_CLOCK_FREQUENCY);
     for (i=0; i<NEOPIXEL_NUMBER; i++){
-        pixelData[i]=0x080001;
+        pixelData[i]=0x08000100;
     }
     fiopix_show(&fiopix);
 
-    PRINTF("SCT NeoPixel Demo\r\n");
+    PRINTF("FlexIO NeoPixel Demo\r\n");
 
     /* Set systick reload value to generate 1ms interrupt */
     if (SysTick_Config(SystemCoreClock / 1000U))
@@ -100,9 +110,13 @@ int main(void)
         }
     }
 
+    GPIO_PinWrite(EXAMPLE_LED_GPIO, EXAMPLE_LED_GPIO_PIN, 1U);
+    
     i = 0;
     while (1)
     {
+        if (i & 0x20) { GPIO_PinWrite(EXAMPLE_LED_GPIO, EXAMPLE_LED_GPIO_PIN, 0U); }
+        else { GPIO_PinWrite(EXAMPLE_LED_GPIO, EXAMPLE_LED_GPIO_PIN, 1U); }
         SysTick_DelayTicks(50U);
         color = i/NEOPIXEL_NUMBER;
         color = (1&color) + ((2&color)<<16) + ((4&color)<<8);

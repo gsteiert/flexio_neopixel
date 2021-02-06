@@ -74,7 +74,7 @@ void fiopix_show(FLEXIO_NEOPIXEL_Type *fiopix) {
 //  _fiopix_busy = true; // for future non-blocking support
   uint32_t pixelCount = 0;
   while (pixelCount < fiopix->pixelNum) {
-    while (fiopix->flexioBase->SHIFTSTAT & (uint32_t)(1 << (fiopix->shifter+1))) {
+    while (!(fiopix->flexioBase->SHIFTSTAT & (uint32_t)(1 << (fiopix->shifter+1)))) {
       __NOP();
     }
     fiopix->flexioBase->SHIFTBUFBIS[fiopix->shifter+1] = fiopix->pixelBuf[pixelCount++];
@@ -115,6 +115,8 @@ void fiopix_init(FLEXIO_NEOPIXEL_Type *fiopix, uint32_t srcClock_Hz) {
     /* Clear the shifterConfig & timerConfig struct. */
     (void)memset(&shifterConfig, 0, sizeof(shifterConfig));
     (void)memset(&timerConfig, 0, sizeof(timerConfig));
+
+    CLOCK_EnableClock(s_flexioClocks[FLEXIO_GetInstance(fiopix->flexioBase)]);
 
     /* Configure FLEXIO */
     fiopix->flexioBase->CTRL |= FLEXIO_CTRL_FLEXEN_MASK;
