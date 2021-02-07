@@ -118,10 +118,30 @@ bool fiopix_canShow(FLEXIO_NEOPIXEL_Type *fiopix);
   @brief  This sets the value of the respective pixel data
   @param  fiopix  Pointer to the FLEXIO_NEOPIXEL_Type structure
   @param  pixel  The pixel in the specified channel
-  @param  color  The raw pixel value to be stored
+  @param  color  32bit WRGB value to be converted and stored
 */
 void fiopix_setPixel(FLEXIO_NEOPIXEL_Type *fiopix, uint32_t pixel, uint32_t color);
 
+/*!
+  @brief  This sets the value of the respective pixel data
+  @param  fiopix  Pointer to the FLEXIO_NEOPIXEL_Type structure
+  @param  pixel  The pixel in the specified channel
+  @param  r  8 bit red value to be stored
+  @param  g  8 bit green value to be stored
+  @param  b  8 bit blue value to be stored
+*/
+void fiopix_setPixelRGB(FLEXIO_NEOPIXEL_Type *fiopix, uint32_t pixel, uint8_t r, uint8_t g, uint8_t b);
+
+/*!
+  @brief  This sets the value of the respective pixel data
+  @param  fiopix  Pointer to the FLEXIO_NEOPIXEL_Type structure
+  @param  pixel  The pixel in the specified channel
+  @param  r  8 bit red value to be stored
+  @param  g  8 bit green value to be stored
+  @param  b  8 bit blue value to be stored
+  @param  w  8 bit blue value to be stored
+*/
+void fiopix_setPixelRGBW(FLEXIO_NEOPIXEL_Type *fiopix, uint32_t pixel, uint8_t r, uint8_t g, uint8_t b, uint8_t w);
 
 
 #ifdef __cplusplus

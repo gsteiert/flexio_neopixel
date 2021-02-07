@@ -62,10 +62,70 @@ void SCT0_DriverIRQHandler(void){
 //--------------------------------------------------------------------+
 // User Functions
 //--------------------------------------------------------------------+
+
+void fiopix_setPixelRGB(FLEXIO_NEOPIXEL_Type *fiopix, uint32_t pixel, uint8_t r, uint8_t g, uint8_t b) {
+  if (pixel < fiopix->pixelNum) {
+    switch (fiopix->pixelType)
+    {
+    case NEO_GRB:
+      fiopix->pixelBuf[pixel] = (r << 16) | (g << 24) | (b << 8);
+      break;
+    case NEO_GBR:
+      fiopix->pixelBuf[pixel] = (r << 8) | (g << 24) | (b << 16);
+      break;
+    case NEO_RGB:
+      fiopix->pixelBuf[pixel] = (r << 24) | (g << 16) | (b << 8);
+      break;
+    case NEO_RBG:
+      fiopix->pixelBuf[pixel] = (r << 24) | (g << 8) | (b << 16);
+      break;
+    case NEO_BRG:
+      fiopix->pixelBuf[pixel] = (r << 16) | (g << 8) | (b << 24);
+      break;
+    case NEO_BGR:
+      fiopix->pixelBuf[pixel] = (r << 8) | (g << 16) | (b << 24);
+      break;    
+    default:
+      fiopix->pixelBuf[pixel] = 0;
+      break;
+    }
+  }
+}
+
+void fiopix_setPixelRGBW(FLEXIO_NEOPIXEL_Type *fiopix, uint32_t pixel, uint8_t r, uint8_t g, uint8_t b, uint8_t w) {
+  if (pixel < fiopix->pixelNum) {
+    switch (fiopix->pixelType)
+    {
+    case NEO_RGBW:
+      fiopix->pixelBuf[pixel] = (r << 24) | (g << 16) | (b << 8) | (w);
+      break;
+    default:
+      fiopix->pixelBuf[pixel] = 0;
+      break;
+    }
+  }
+}
+
 void fiopix_setPixel(FLEXIO_NEOPIXEL_Type *fiopix, uint32_t pixel, uint32_t color) {
+  uint8_t w, r, g, b;
   if (pixel < fiopix->pixelNum) {
 //    while (_fiopix_busy) { __NOP(); } // for future non-blocking support
-    fiopix->pixelBuf[pixel] = color;
+    w = 0xFF & (color >> 24);
+    r = 0xFF & (color >> 16);
+    g = 0xFF & (color >> 8);
+    b = 0xFF & color;
+    switch (fiopix->pixelType) {
+      case NEO_RGB:
+      case NEO_RBG:
+      case NEO_GRB:
+      case NEO_GBR:
+      case NEO_BRG:
+      case NEO_BGR:
+        fiopix_setPixelRGB(fiopix, pixel, r, g, b);
+        break;
+      default:
+        fiopix_setPixelRGBW(fiopix, pixel, r, g, b, w);
+    }
   }
 }
 
