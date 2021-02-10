@@ -77,7 +77,16 @@
 #define NEO_BIT_FREQUENCY     800000
 
 
-/*! @brief Define FlexIO SPI access structure typedef. */
+/*! @brief Handle for FlexIO NeoPixel Interrupts typedef */
+typedef struct _flexio_neopixel_handle_type
+{
+  volatile uint32_t *dataReg;  /*!< Pointer to shifter data register */
+  uint32_t flags;              /*!< INterrupt flags */
+  volatile uint32_t count;     /*!< Bytes transfered */
+  volatile bool     busy;      /*!< Busy indicator */
+} FIOPIX_HANDLE_Type;
+
+/*! @brief Define FlexIO NeoPixel structure typedef */
 typedef struct _flexio_neopixel_type
 {
     FLEXIO_Type *flexioBase; /*!< FlexIO base pointer */
@@ -92,6 +101,7 @@ typedef struct _flexio_neopixel_type
     //   D(i+5) for internal shift register (no output)
     uint8_t shifter; /*!< Index of first FlexIO shifter resource */
     uint8_t timer;   /*!< Index of first FlexIO timer resource */
+    FIOPIX_HANDLE_Type handle; /*!< Interrupt handle */
 } FLEXIO_NEOPIXEL_Type;
 
 /*!
@@ -104,7 +114,12 @@ typedef struct _flexio_neopixel_type
 void fiopix_init(FLEXIO_NEOPIXEL_Type *fiopix, uint32_t srcClock_Hz);
 
 /*!
-  @brief  This initiates the transfer of data on all the configured channels
+  @brief  This initiates the transfer on the instance
+*/
+void fiopix_showBlocking(FLEXIO_NEOPIXEL_Type *fiopix);
+
+/*!
+  @brief  This initiates interrupt based transfer on the instance
 */
 void fiopix_show(FLEXIO_NEOPIXEL_Type *fiopix);
 

@@ -96,7 +96,7 @@ int main(void)
     fiopix.timer      = NEOPIXEL_TIMER;
     fiopix_init(&fiopix, NEOPIXEL_FLEXIO_CLOCK_FREQUENCY);
     for (i=0; i<NEOPIXEL_NUMBER; i++){
-        pixelData[i]=0x08000100;
+        pixelData[i]=0x00010100;
     }
     fiopix_show(&fiopix);
 

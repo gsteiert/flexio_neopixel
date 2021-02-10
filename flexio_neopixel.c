@@ -40,19 +40,24 @@ volatile bool     _fiopix_busy = false;
 //--------------------------------------------------------------------+
 // Interrupt
 //--------------------------------------------------------------------+
-/*
-void fiopix_int_handler(void){
-  // get and check even flags
-  uint32_t eventFlag = NEO_SCT->EVFLAG;
-  // if data remaining
-  if (_fiopix_count < _fiopix_size) {
-    fiopix->flexioBase->SHIFTBUFBIS[fiopix->shifter+1] = _fiopix_data[_fiopix_count++];
-  } else {
-    _fiopix_busy = false;
+
+void fiopix_int_handler(void *fiopixType, void *fiopixHandle) {
+  FLEXIO_NEOPIXEL_Type *fiopix = (FLEXIO_NEOPIXEL_Type *)fiopixType;
+  FIOPIX_HANDLE_Type *handle = (FIOPIX_HANDLE_Type *)fiopixHandle;
+  uint32_t status = fiopix->flexioBase->SHIFTSTAT;
+
+  if (status & handle->flags) {
+    if (handle->count < fiopix->pixelNum) {
+      *handle->dataReg = fiopix->pixelBuf[handle->count++];
+    } else {
+      handle->busy = false;
+      FLEXIO_DisableShifterStatusInterrupts(fiopix->flexioBase, (1UL << (fiopix->shifter +1)));
+    }
+
   }
-  // clear interrupt
+
 }
-*/
+
 /*
 void SCT0_DriverIRQHandler(void){
   fiopix_int_handler();
@@ -129,7 +134,7 @@ void fiopix_setPixel(FLEXIO_NEOPIXEL_Type *fiopix, uint32_t pixel, uint32_t colo
   }
 }
 
-void fiopix_show(FLEXIO_NEOPIXEL_Type *fiopix) {
+void fiopix_showBlocking(FLEXIO_NEOPIXEL_Type *fiopix) {
 //  while (_fiopix_busy) {__NOP();} // for future non-blocking support
 //  _fiopix_busy = true; // for future non-blocking support
   uint32_t pixelCount = 0;
@@ -142,6 +147,14 @@ void fiopix_show(FLEXIO_NEOPIXEL_Type *fiopix) {
   // Make sure all the bits have shifted out and there is enough time for the reset pulse
   SDK_DelayAtLeastUs(128, SDK_DEVICE_MAXIMUM_CPU_CLOCK_FREQUENCY);
 }
+
+void fiopix_show(FLEXIO_NEOPIXEL_Type *fiopix) {
+  fiopix->handle.count = 0;
+  fiopix->handle.busy = true;
+  *fiopix->handle.dataReg = fiopix->pixelBuf[fiopix->handle.count++];
+  FLEXIO_EnableShifterStatusInterrupts(fiopix->flexioBase, (1UL << (fiopix->shifter +1)));
+}
+
 
 bool fiopix_canShow(FLEXIO_NEOPIXEL_Type *fiopix) {
 //  return !_fiopix_busy; // for future non-blocking support
@@ -257,6 +270,21 @@ void fiopix_init(FLEXIO_NEOPIXEL_Type *fiopix, uint32_t srcClock_Hz) {
     timerConfig.timerCompare = ((quarterPeriod-1U)<<8) | (quarterPeriod -1U);
 
     FLEXIO_SetTimerConfig(fiopix->flexioBase, fiopix->timer+1, &timerConfig);
+
+    fiopix->handle.dataReg = &fiopix->flexioBase->SHIFTBUFBIS[fiopix->shifter+1];
+    fiopix->handle.flags = 1U << (fiopix->shifter +1);
+    fiopix->handle.count = 0;
+    fiopix->handle.busy = false;
+
+    IRQn_Type flexio_irqs[] = FLEXIO_IRQS;
+
+    /* Clear pending NVIC IRQ before enable NVIC IRQ. */
+    NVIC_ClearPendingIRQ(flexio_irqs[FLEXIO_GetInstance(fiopix->flexioBase)]);
+    /* Enable interrupt in NVIC. */
+    (void)EnableIRQ(flexio_irqs[FLEXIO_GetInstance(fiopix->flexioBase)]);
+
+    /* Save the context in global variables to support the double weak mechanism. */
+    FLEXIO_RegisterHandleIRQ(fiopix, &fiopix->handle, fiopix_int_handler);
 
 }
 

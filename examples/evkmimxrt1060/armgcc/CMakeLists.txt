@@ -22,9 +22,9 @@ SET(EXECUTABLE_OUTPUT_PATH ${ProjDirPath}/${CMAKE_BUILD_TYPE})
 SET(LIBRARY_OUTPUT_PATH ${ProjDirPath}/${CMAKE_BUILD_TYPE})
 
 
-project(flexio_neopixel_int)
+project(neo_demo)
 
-set(MCUX_SDK_PROJECT_NAME flexio_neopixel_int.elf)
+set(MCUX_SDK_PROJECT_NAME neo_demo.elf)
 
 include(${ProjDirPath}/flags.cmake)
 
