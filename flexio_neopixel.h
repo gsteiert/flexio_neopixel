@@ -76,13 +76,18 @@
 
 #define NEO_BIT_FREQUENCY     800000
 
+#define FIOPIX_LOGIC_PATTERN  0xCCCC8888
+
 
 /*! @brief Handle for FlexIO NeoPixel Interrupts typedef */
 typedef struct _flexio_neopixel_handle_type
 {
   volatile uint32_t *dataReg;  /*!< Pointer to shifter data register */
-  uint32_t flags;              /*!< INterrupt flags */
-  volatile uint32_t count;     /*!< Bytes transfered */
+  uint32_t shifterFlag;              /*!< INterrupt flags */
+  uint32_t timerFlag;              /*!< INterrupt flags */
+  uint32_t doneCnt;            /*!< Count at end of reset period */
+  volatile uint32_t dataCnt;     /*!< Bytes transfered */
+  volatile uint32_t timerCnt;     /*!< Bytes transfered */
   volatile bool     busy;      /*!< Busy indicator */
 } FIOPIX_HANDLE_Type;
 

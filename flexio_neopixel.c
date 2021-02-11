@@ -44,26 +44,35 @@ volatile bool     _fiopix_busy = false;
 void fiopix_int_handler(void *fiopixType, void *fiopixHandle) {
   FLEXIO_NEOPIXEL_Type *fiopix = (FLEXIO_NEOPIXEL_Type *)fiopixType;
   FIOPIX_HANDLE_Type *handle = (FIOPIX_HANDLE_Type *)fiopixHandle;
-  uint32_t status = fiopix->flexioBase->SHIFTSTAT;
-
-  if (status & handle->flags) {
-    if (handle->count < fiopix->pixelNum) {
-      *handle->dataReg = fiopix->pixelBuf[handle->count++];
-    } else {
-      handle->busy = false;
-      FLEXIO_DisableShifterStatusInterrupts(fiopix->flexioBase, (1UL << (fiopix->shifter +1)));
+  
+  if (handle->dataCnt < fiopix->pixelNum) {
+    if (fiopix->flexioBase->SHIFTSTAT & handle->shifterFlag) {
+      *handle->dataReg = fiopix->pixelBuf[handle->dataCnt++];
     }
-
   }
 
+  if (fiopix->flexioBase->TIMSTAT & handle->timerFlag) {
+    handle->timerCnt +=1;
+    fiopix->flexioBase->TIMSTAT = handle->timerFlag;
+    if (handle->timerCnt == fiopix->pixelNum) {
+      // Turn off the output and run a few more pixels to 
+      // enforce the reset period before clearing busy
+      fiopix->flexioBase->SHIFTBUF[fiopix->shifter] = 0;
+      *handle->dataReg = 0;
+    }
+    if ((handle->timerCnt > fiopix->pixelNum) && (handle->timerCnt < handle->doneCnt)) {
+      *handle->dataReg = 0;
+    }
+    if (handle->timerCnt >= handle->doneCnt) {
+      fiopix->flexioBase->SHIFTBUF[fiopix->shifter] = FIOPIX_LOGIC_PATTERN;
+      handle->dataCnt = 0;
+      handle->timerCnt = 0;
+      handle->busy = false;
+      FLEXIO_DisableTimerStatusInterrupts(fiopix->flexioBase, handle->timerFlag);
+    }
+  }
 }
 
-/*
-void SCT0_DriverIRQHandler(void){
-  fiopix_int_handler();
-  SDK_ISR_EXIT_BARRIER;
-}
-*/
 //--------------------------------------------------------------------+
 // User Functions
 //--------------------------------------------------------------------+
@@ -114,7 +123,6 @@ void fiopix_setPixelRGBW(FLEXIO_NEOPIXEL_Type *fiopix, uint32_t pixel, uint8_t r
 void fiopix_setPixel(FLEXIO_NEOPIXEL_Type *fiopix, uint32_t pixel, uint32_t color) {
   uint8_t w, r, g, b;
   if (pixel < fiopix->pixelNum) {
-//    while (_fiopix_busy) { __NOP(); } // for future non-blocking support
     w = 0xFF & (color >> 24);
     r = 0xFF & (color >> 16);
     g = 0xFF & (color >> 8);
@@ -135,8 +143,9 @@ void fiopix_setPixel(FLEXIO_NEOPIXEL_Type *fiopix, uint32_t pixel, uint32_t colo
 }
 
 void fiopix_showBlocking(FLEXIO_NEOPIXEL_Type *fiopix) {
-//  while (_fiopix_busy) {__NOP();} // for future non-blocking support
-//  _fiopix_busy = true; // for future non-blocking support
+  while (fiopix->handle.busy) {
+    __NOP();
+  }
   uint32_t pixelCount = 0;
   while (pixelCount < fiopix->pixelNum) {
     while (!(fiopix->flexioBase->SHIFTSTAT & (uint32_t)(1 << (fiopix->shifter+1)))) {
@@ -149,16 +158,27 @@ void fiopix_showBlocking(FLEXIO_NEOPIXEL_Type *fiopix) {
 }
 
 void fiopix_show(FLEXIO_NEOPIXEL_Type *fiopix) {
-  fiopix->handle.count = 0;
+  while (fiopix->handle.busy) {
+    __NOP();
+  }
   fiopix->handle.busy = true;
-  *fiopix->handle.dataReg = fiopix->pixelBuf[fiopix->handle.count++];
-  FLEXIO_EnableShifterStatusInterrupts(fiopix->flexioBase, (1UL << (fiopix->shifter +1)));
+  fiopix->handle.dataCnt = 0;
+  fiopix->handle.timerCnt = 0;
+  fiopix->flexioBase->SHIFTBUF[fiopix->shifter] = FIOPIX_LOGIC_PATTERN;
+  fiopix->flexioBase->TIMSTAT = fiopix->handle.timerFlag;
+  FLEXIO_EnableTimerStatusInterrupts(fiopix->flexioBase, fiopix->handle.timerFlag);
+  *fiopix->handle.dataReg = fiopix->pixelBuf[fiopix->handle.dataCnt++];
+  if (fiopix->handle.dataCnt < fiopix->pixelNum) {
+    while (!(fiopix->flexioBase->SHIFTSTAT & fiopix->handle.shifterFlag)) {
+      __NOP();
+    }
+    *fiopix->handle.dataReg = fiopix->pixelBuf[fiopix->handle.dataCnt++];
+  }
 }
 
 
 bool fiopix_canShow(FLEXIO_NEOPIXEL_Type *fiopix) {
-//  return !_fiopix_busy; // for future non-blocking support
-  return true;
+  return !fiopix->handle.busy;
 }
 
 void fiopix_init(FLEXIO_NEOPIXEL_Type *fiopix, uint32_t srcClock_Hz) {
@@ -180,9 +200,11 @@ void fiopix_init(FLEXIO_NEOPIXEL_Type *fiopix, uint32_t srcClock_Hz) {
     case NEO_BRG:
     case NEO_BGR:
       bitsPerPixel = 24;
+      fiopix->handle.doneCnt = fiopix->pixelNum +3;
       break;
     default:
       bitsPerPixel = 32;
+      fiopix->handle.doneCnt = fiopix->pixelNum + 2;
   }
 
     /* Clear the shifterConfig & timerConfig struct. */
@@ -213,7 +235,7 @@ void fiopix_init(FLEXIO_NEOPIXEL_Type *fiopix, uint32_t srcClock_Hz) {
 
     FLEXIO_SetShifterConfig(fiopix->flexioBase, fiopix->shifter, &shifterConfig);
     // write look-up table values to SHIFTBUF
-    fiopix->flexioBase->SHIFTBUF[fiopix->shifter] = 0xCCCC8888;
+    fiopix->flexioBase->SHIFTBUF[fiopix->shifter] = FIOPIX_LOGIC_PATTERN;
 
     /* 2. Configure the second shifter for tx. */
     shifterConfig.timerSelect = fiopix->timer;
@@ -272,8 +294,10 @@ void fiopix_init(FLEXIO_NEOPIXEL_Type *fiopix, uint32_t srcClock_Hz) {
     FLEXIO_SetTimerConfig(fiopix->flexioBase, fiopix->timer+1, &timerConfig);
 
     fiopix->handle.dataReg = &fiopix->flexioBase->SHIFTBUFBIS[fiopix->shifter+1];
-    fiopix->handle.flags = 1U << (fiopix->shifter +1);
-    fiopix->handle.count = 0;
+    fiopix->handle.shifterFlag = 1U << (fiopix->shifter +1);
+    fiopix->handle.timerFlag = 1U << (fiopix->timer);
+    fiopix->handle.dataCnt = 0;
+    fiopix->handle.timerCnt = 0;
     fiopix->handle.busy = false;
 
     IRQn_Type flexio_irqs[] = FLEXIO_IRQS;
@@ -285,6 +309,5 @@ void fiopix_init(FLEXIO_NEOPIXEL_Type *fiopix, uint32_t srcClock_Hz) {
 
     /* Save the context in global variables to support the double weak mechanism. */
     FLEXIO_RegisterHandleIRQ(fiopix, &fiopix->handle, fiopix_int_handler);
-
 }
 

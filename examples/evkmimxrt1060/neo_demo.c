@@ -96,8 +96,9 @@ int main(void)
     fiopix.timer      = NEOPIXEL_TIMER;
     fiopix_init(&fiopix, NEOPIXEL_FLEXIO_CLOCK_FREQUENCY);
     for (i=0; i<NEOPIXEL_NUMBER; i++){
-        pixelData[i]=0x00010100;
+        pixelData[i]=0x04000100;
     }
+//    fiopix_showBlocking(&fiopix);
     fiopix_show(&fiopix);
 
     PRINTF("FlexIO NeoPixel Demo\r\n");
@@ -129,6 +130,7 @@ int main(void)
         fiopix_setPixel(&fiopix, ((i+6) % NEOPIXEL_NUMBER), (color <<2));
         fiopix_setPixel(&fiopix, ((i+7) % NEOPIXEL_NUMBER), (color <<0));
         fiopix_show(&fiopix);
+//        fiopix_showBlocking(&fiopix);
         i +=1;
     }
 }
