@@ -90,6 +90,7 @@ int main(void)
     /* Initialize NeoPixel Interface */
     fiopix.flexioBase = NEOPIXEL_FLEXIO_BASE;
     fiopix.pixelBuf   = pixelData;
+    fiopix.pixelPin   = 2U;
     fiopix.pixelNum   = NEOPIXEL_NUMBER;
     fiopix.pixelType  = NEOPIXEL_TYPE;
     fiopix.shifter    = NEOPIXEL_SHIFTER;

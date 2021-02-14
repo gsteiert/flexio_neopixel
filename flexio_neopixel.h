@@ -96,6 +96,7 @@ typedef struct _flexio_neopixel_type
 {
     FLEXIO_Type *flexioBase; /*!< FlexIO base pointer */
     uint32_t *pixelBuf;      /*!< Pointer to pixel data buffer */
+    uint32_t pixelPin;       /*!< Bit number of FlexIO Data line to use */
     uint32_t pixelNum;       /*!< Number of pixels */
     uint8_t pixelType;       /*!< Type of NeoPixel (GRB/WGRB/... etc) */
     // The FlexIO data for logic mode are fixed per shifter
@@ -104,7 +105,7 @@ typedef struct _flexio_neopixel_type
     //   D(i+1) for second timer output (internal)
     //   D(i+4) for NeoPixel data output (external)
     //   D(i+5) for internal shift register (no output)
-    uint8_t shifter; /*!< Index of first FlexIO shifter resource */
+    uint8_t shifter; /*!< Index of FlexIO shifter resource */
     uint8_t timer;   /*!< Index of first FlexIO timer resource */
     FIOPIX_HANDLE_Type handle; /*!< Interrupt handle */
 } FLEXIO_NEOPIXEL_Type;

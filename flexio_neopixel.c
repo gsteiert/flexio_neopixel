@@ -57,18 +57,19 @@ void fiopix_int_handler(void *fiopixType, void *fiopixHandle) {
     if (handle->timerCnt == fiopix->pixelNum) {
       // Turn off the output and run a few more pixels to 
       // enforce the reset period before clearing busy
-      fiopix->flexioBase->SHIFTBUF[fiopix->shifter] = 0;
+      fiopix->flexioBase->TIMCTL[fiopix->timer] &= ~FLEXIO_TIMCTL_PINCFG_MASK;
       *handle->dataReg = 0;
     }
     if ((handle->timerCnt > fiopix->pixelNum) && (handle->timerCnt < handle->doneCnt)) {
       *handle->dataReg = 0;
     }
     if (handle->timerCnt >= handle->doneCnt) {
-      fiopix->flexioBase->SHIFTBUF[fiopix->shifter] = FIOPIX_LOGIC_PATTERN;
+      FLEXIO_DisableTimerStatusInterrupts(fiopix->flexioBase, handle->timerFlag);
+      fiopix->flexioBase->TIMCTL[fiopix->timer] |= FLEXIO_TIMCTL_PINCFG(kFLEXIO_PinConfigOpenDrainOrBidirection);
       handle->dataCnt = 0;
       handle->timerCnt = 0;
       handle->busy = false;
-      FLEXIO_DisableTimerStatusInterrupts(fiopix->flexioBase, handle->timerFlag);
+//      FLEXIO_DisableTimerStatusInterrupts(fiopix->flexioBase, handle->timerFlag);
     }
   }
 }
@@ -148,10 +149,10 @@ void fiopix_showBlocking(FLEXIO_NEOPIXEL_Type *fiopix) {
   }
   uint32_t pixelCount = 0;
   while (pixelCount < fiopix->pixelNum) {
-    while (!(fiopix->flexioBase->SHIFTSTAT & (uint32_t)(1 << (fiopix->shifter+1)))) {
+    while (!(fiopix->flexioBase->SHIFTSTAT & (uint32_t)(1 << (fiopix->shifter)))) {
       __NOP();
     }
-    fiopix->flexioBase->SHIFTBUFBIS[fiopix->shifter+1] = fiopix->pixelBuf[pixelCount++];
+    fiopix->flexioBase->SHIFTBUFBIS[fiopix->shifter] = fiopix->pixelBuf[pixelCount++];
   }
   // Make sure all the bits have shifted out and there is enough time for the reset pulse
   SDK_DelayAtLeastUs(128, SDK_DEVICE_MAXIMUM_CPU_CLOCK_FREQUENCY);
@@ -164,16 +165,17 @@ void fiopix_show(FLEXIO_NEOPIXEL_Type *fiopix) {
   fiopix->handle.busy = true;
   fiopix->handle.dataCnt = 0;
   fiopix->handle.timerCnt = 0;
-  fiopix->flexioBase->SHIFTBUF[fiopix->shifter] = FIOPIX_LOGIC_PATTERN;
   fiopix->flexioBase->TIMSTAT = fiopix->handle.timerFlag;
   FLEXIO_EnableTimerStatusInterrupts(fiopix->flexioBase, fiopix->handle.timerFlag);
   *fiopix->handle.dataReg = fiopix->pixelBuf[fiopix->handle.dataCnt++];
-  if (fiopix->handle.dataCnt < fiopix->pixelNum) {
-    while (!(fiopix->flexioBase->SHIFTSTAT & fiopix->handle.shifterFlag)) {
-      __NOP();
-    }
-    *fiopix->handle.dataReg = fiopix->pixelBuf[fiopix->handle.dataCnt++];
-  }
+  // if (fiopix->handle.dataCnt < fiopix->pixelNum) {
+  //   while (!(fiopix->flexioBase->SHIFTSTAT & fiopix->handle.shifterFlag)) {
+  //     __NOP();
+  //   }
+  //   *fiopix->handle.dataReg = fiopix->pixelBuf[fiopix->handle.dataCnt++];
+  // } 
+  // FLEXIO_EnableTimerStatusInterrupts(fiopix->flexioBase, fiopix->handle.timerFlag);
+
 }
 
 
@@ -219,28 +221,11 @@ void fiopix_init(FLEXIO_NEOPIXEL_Type *fiopix, uint32_t srcClock_Hz) {
     /* Do hardware configuration. */
 
     /* 1. Configure the first shifter for logic. */
-    shifterConfig.timerSelect  = fiopix->timer;  // shift on rise of short pulse
-    shifterConfig.pinConfig    = kFLEXIO_PinConfigOutput;
-    shifterConfig.pinSelect    = fiopix->shifter +4;  // does not apply when using next shifter
-    shifterConfig.parallelWidth = 31;  // shift 32bits, one clock delay
-    shifterConfig.pinPolarity  = kFLEXIO_PinActiveHigh; // does not apply when using next shifter
-    shifterConfig.shifterMode  = kFLEXIO_ShifterModeLogic;  // use logic mode
-    // get data from next shifter to free up FlexIO data lines
-    shifterConfig.inputSource  = kFLEXIO_ShifterInputFromNextShifterOutput;
-    // only use lower two FlexIO data lines for decode  
-    shifterConfig.shifterStop  = (flexio_shifter_stop_bit_t)0x3;
-    // enable lower two FlexIO data lines
-    shifterConfig.shifterStart = (flexio_shifter_start_bit_t)0x0;
-    shifterConfig.timerPolarity = kFLEXIO_ShifterTimerPolarityOnPositive;
-
-    FLEXIO_SetShifterConfig(fiopix->flexioBase, fiopix->shifter, &shifterConfig);
-    // write look-up table values to SHIFTBUF
-    fiopix->flexioBase->SHIFTBUF[fiopix->shifter] = FIOPIX_LOGIC_PATTERN;
 
     /* 2. Configure the second shifter for tx. */
     shifterConfig.timerSelect = fiopix->timer;
     shifterConfig.pinConfig   = kFLEXIO_PinConfigBidirectionOutputData;
-    shifterConfig.pinSelect   = 2U;
+    shifterConfig.pinSelect   = fiopix->pixelPin;
     shifterConfig.parallelWidth = 0;
     shifterConfig.pinPolarity = kFLEXIO_PinActiveHigh;
     shifterConfig.shifterMode = kFLEXIO_ShifterModeTransmit;
@@ -249,15 +234,15 @@ void fiopix_init(FLEXIO_NEOPIXEL_Type *fiopix, uint32_t srcClock_Hz) {
     shifterConfig.shifterStop   = kFLEXIO_ShifterStopBitDisable;
     shifterConfig.shifterStart  = kFLEXIO_ShifterStartBitDisabledLoadDataOnEnable;
 
-    FLEXIO_SetShifterConfig(fiopix->flexioBase, (fiopix->shifter+1), &shifterConfig);
+    FLEXIO_SetShifterConfig(fiopix->flexioBase, (fiopix->shifter), &shifterConfig);
 
 
     /* 3. Configure the first timer for bit clock. */
-    timerConfig.triggerSelect   = FLEXIO_TIMER_TRIGGER_SEL_SHIFTnSTAT(fiopix->shifter+1);
+    timerConfig.triggerSelect   = FLEXIO_TIMER_TRIGGER_SEL_SHIFTnSTAT(fiopix->shifter);
     timerConfig.triggerPolarity = kFLEXIO_TimerTriggerPolarityActiveLow;
     timerConfig.triggerSource   = kFLEXIO_TimerTriggerSourceInternal;
     timerConfig.pinConfig       = kFLEXIO_PinConfigOpenDrainOrBidirection;
-    timerConfig.pinSelect       = 2U;
+    timerConfig.pinSelect       = fiopix->pixelPin;
     timerConfig.pinPolarity     = kFLEXIO_PinActiveHigh;
     timerConfig.timerMode       = kFLEXIO_TimerModeDual8BitBaudBit;
     timerConfig.timerOutput     = kFLEXIO_TimerOutputZeroNotAffectedByReset;
@@ -278,7 +263,7 @@ void fiopix_init(FLEXIO_NEOPIXEL_Type *fiopix, uint32_t srcClock_Hz) {
     timerConfig.triggerPolarity = kFLEXIO_TimerTriggerPolarityActiveHigh;
     timerConfig.triggerSource   = kFLEXIO_TimerTriggerSourceInternal;
     timerConfig.pinConfig       = kFLEXIO_PinConfigBidirectionOutputData;
-    timerConfig.pinSelect       = 2U;
+    timerConfig.pinSelect       = fiopix->pixelPin;
     timerConfig.pinPolarity     = kFLEXIO_PinActiveHigh;
     timerConfig.timerMode       = kFLEXIO_TimerModeDual8BitPWM;
     timerConfig.timerOutput     = kFLEXIO_TimerOutputOneNotAffectedByReset;
@@ -293,8 +278,8 @@ void fiopix_init(FLEXIO_NEOPIXEL_Type *fiopix, uint32_t srcClock_Hz) {
 
     FLEXIO_SetTimerConfig(fiopix->flexioBase, fiopix->timer+1, &timerConfig);
 
-    fiopix->handle.dataReg = &fiopix->flexioBase->SHIFTBUFBIS[fiopix->shifter+1];
-    fiopix->handle.shifterFlag = 1U << (fiopix->shifter +1);
+    fiopix->handle.dataReg = &fiopix->flexioBase->SHIFTBUFBIS[fiopix->shifter];
+    fiopix->handle.shifterFlag = 1U << (fiopix->shifter);
     fiopix->handle.timerFlag = 1U << (fiopix->timer);
     fiopix->handle.dataCnt = 0;
     fiopix->handle.timerCnt = 0;
