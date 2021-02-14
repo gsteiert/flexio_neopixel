@@ -88,7 +88,7 @@ void BOARD_InitPins(void) {
       IOMUXC_GPIO_AD_B1_06_FLEXIO3_FLEXIO06,     /* GPIO_B0_06 is configured as FLEXIO2_FLEXIO06 */
       0U);                                    /* Software Input On Field: Input Path is determined by functionality */
   IOMUXC_SetPinMux(
-      IOMUXC_GPIO_AD_B1_07_FLEXIO3_FLEXIO07,     /* GPIO_B0_07 is configured as FLEXIO2_FLEXIO07 */
+      IOMUXC_GPIO_AD_B1_02_FLEXIO3_FLEXIO02,     /* GPIO_B1_02 is configured as FLEXIO2_FLEXIO07 */
       0U);                                    /* Software Input On Field: Input Path is determined by functionality */
   IOMUXC_SetPinMux(
       IOMUXC_GPIO_AD_B1_04_FLEXIO3_FLEXIO04,     /* GPIO_B0_08 is configured as FLEXIO2_FLEXIO08 */
@@ -155,8 +155,8 @@ void BOARD_InitPins(void) {
                                                  Pull Up / Down Config. Field: 100K Ohm Pull Down
                                                  Hyst. Enable Field: Hysteresis Disabled */
   IOMUXC_SetPinConfig(
-      IOMUXC_GPIO_AD_B1_07_FLEXIO3_FLEXIO07,     /* GPIO_B0_08 PAD functional properties : */
-      0x10B0u);                               /* Slew Rate Field: Slow Slew Rate
+      IOMUXC_GPIO_AD_B1_02_FLEXIO3_FLEXIO02,     /* GPIO_B0_08 PAD functional properties : */
+      0x30B0u);                               /* Slew Rate Field: Slow Slew Rate
                                                  Drive Strength Field: R0/6
                                                  Speed Field: medium(100MHz)
                                                  Open Drain Enable Field: Open Drain Disabled

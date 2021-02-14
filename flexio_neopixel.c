@@ -221,7 +221,7 @@ void fiopix_init(FLEXIO_NEOPIXEL_Type *fiopix, uint32_t srcClock_Hz) {
     /* 1. Configure the first shifter for logic. */
     shifterConfig.timerSelect  = fiopix->timer;  // shift on rise of short pulse
     shifterConfig.pinConfig    = kFLEXIO_PinConfigOutput;
-    shifterConfig.pinSelect    = fiopix->shifter;  // does not apply when using next shifter
+    shifterConfig.pinSelect    = fiopix->shifter +4;  // does not apply when using next shifter
     shifterConfig.parallelWidth = 31;  // shift 32bits, one clock delay
     shifterConfig.pinPolarity  = kFLEXIO_PinActiveHigh; // does not apply when using next shifter
     shifterConfig.shifterMode  = kFLEXIO_ShifterModeLogic;  // use logic mode
@@ -239,8 +239,8 @@ void fiopix_init(FLEXIO_NEOPIXEL_Type *fiopix, uint32_t srcClock_Hz) {
 
     /* 2. Configure the second shifter for tx. */
     shifterConfig.timerSelect = fiopix->timer;
-    shifterConfig.pinConfig   = kFLEXIO_PinConfigOutput;
-    shifterConfig.pinSelect   = fiopix->shifter+5;
+    shifterConfig.pinConfig   = kFLEXIO_PinConfigBidirectionOutputData;
+    shifterConfig.pinSelect   = 2U;
     shifterConfig.parallelWidth = 0;
     shifterConfig.pinPolarity = kFLEXIO_PinActiveHigh;
     shifterConfig.shifterMode = kFLEXIO_ShifterModeTransmit;
@@ -256,8 +256,8 @@ void fiopix_init(FLEXIO_NEOPIXEL_Type *fiopix, uint32_t srcClock_Hz) {
     timerConfig.triggerSelect   = FLEXIO_TIMER_TRIGGER_SEL_SHIFTnSTAT(fiopix->shifter+1);
     timerConfig.triggerPolarity = kFLEXIO_TimerTriggerPolarityActiveLow;
     timerConfig.triggerSource   = kFLEXIO_TimerTriggerSourceInternal;
-    timerConfig.pinConfig       = kFLEXIO_PinConfigOutput;
-    timerConfig.pinSelect       = fiopix->shifter+1;
+    timerConfig.pinConfig       = kFLEXIO_PinConfigOpenDrainOrBidirection;
+    timerConfig.pinSelect       = 2U;
     timerConfig.pinPolarity     = kFLEXIO_PinActiveHigh;
     timerConfig.timerMode       = kFLEXIO_TimerModeDual8BitBaudBit;
     timerConfig.timerOutput     = kFLEXIO_TimerOutputZeroNotAffectedByReset;
@@ -277,8 +277,8 @@ void fiopix_init(FLEXIO_NEOPIXEL_Type *fiopix, uint32_t srcClock_Hz) {
     timerConfig.triggerSelect   = FLEXIO_TIMER_TRIGGER_SEL_TIMn(fiopix->timer);
     timerConfig.triggerPolarity = kFLEXIO_TimerTriggerPolarityActiveHigh;
     timerConfig.triggerSource   = kFLEXIO_TimerTriggerSourceInternal;
-    timerConfig.pinConfig       = kFLEXIO_PinConfigOutput;
-    timerConfig.pinSelect       = fiopix->shifter;
+    timerConfig.pinConfig       = kFLEXIO_PinConfigBidirectionOutputData;
+    timerConfig.pinSelect       = 2U;
     timerConfig.pinPolarity     = kFLEXIO_PinActiveHigh;
     timerConfig.timerMode       = kFLEXIO_TimerModeDual8BitPWM;
     timerConfig.timerOutput     = kFLEXIO_TimerOutputOneNotAffectedByReset;
