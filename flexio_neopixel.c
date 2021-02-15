@@ -220,9 +220,7 @@ void fiopix_init(FLEXIO_NEOPIXEL_Type *fiopix, uint32_t srcClock_Hz) {
 
     /* Do hardware configuration. */
 
-    /* 1. Configure the first shifter for logic. */
-
-    /* 2. Configure the second shifter for tx. */
+    /* 1. Configure the shifter for tx. */
     shifterConfig.timerSelect = fiopix->timer;
     shifterConfig.pinConfig   = kFLEXIO_PinConfigBidirectionOutputData;
     shifterConfig.pinSelect   = fiopix->pixelPin;
@@ -236,8 +234,7 @@ void fiopix_init(FLEXIO_NEOPIXEL_Type *fiopix, uint32_t srcClock_Hz) {
 
     FLEXIO_SetShifterConfig(fiopix->flexioBase, (fiopix->shifter), &shifterConfig);
 
-
-    /* 3. Configure the first timer for bit clock. */
+    /* 2. Configure the first timer for bit clock. */
     timerConfig.triggerSelect   = FLEXIO_TIMER_TRIGGER_SEL_SHIFTnSTAT(fiopix->shifter);
     timerConfig.triggerPolarity = kFLEXIO_TimerTriggerPolarityActiveLow;
     timerConfig.triggerSource   = kFLEXIO_TimerTriggerSourceInternal;
@@ -258,7 +255,7 @@ void fiopix_init(FLEXIO_NEOPIXEL_Type *fiopix, uint32_t srcClock_Hz) {
 
     FLEXIO_SetTimerConfig(fiopix->flexioBase, fiopix->timer, &timerConfig);
 
-    /* 4. Configure the second timer for Short Pulse. */
+    /* 3. Configure the second timer for Short Pulse. */
     timerConfig.triggerSelect   = FLEXIO_TIMER_TRIGGER_SEL_TIMn(fiopix->timer);
     timerConfig.triggerPolarity = kFLEXIO_TimerTriggerPolarityActiveHigh;
     timerConfig.triggerSource   = kFLEXIO_TimerTriggerSourceInternal;
